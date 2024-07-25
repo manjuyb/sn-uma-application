@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update>
+    <sys_documentation element="external_source" label="External Source" language="en" table="x_10227_pcm_rest_i_pcm_rest_correlation">
+        <sys_documentation action="INSERT_OR_UPDATE">
+            <element>external_source</element>
+            <help/>
+            <hint>Used to coalesce on import in the absence of PCM REST Service for incoming data. Used for one-way integrations INTO the system.</hint>
+            <label>External Source</label>
+            <language>en</language>
+            <name>x_10227_pcm_rest_i_pcm_rest_correlation</name>
+            <plural>External Sources</plural>
+            <sys_class_name>sys_documentation</sys_class_name>
+            <sys_created_by>nicholas.yancer</sys_created_by>
+            <sys_created_on>2016-04-01 18:05:21</sys_created_on>
+            <sys_customer_update>true</sys_customer_update>
+            <sys_id>d1284c592b229e00ddeec8b219da15c4</sys_id>
+            <sys_mod_count>1</sys_mod_count>
+            <sys_name>External Source</sys_name>
+            <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
+            <sys_policy/>
+            <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+            <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
+            <sys_update_name>sys_documentation_x_10227_pcm_rest_i_pcm_rest_correlation_external_source_en</sys_update_name>
+            <sys_updated_by>nicholas.yancer</sys_updated_by>
+            <sys_updated_on>2016-04-01 18:06:42</sys_updated_on>
+            <url/>
+            <url_target/>
+        </sys_documentation>
+    </sys_documentation>
+</record_update>

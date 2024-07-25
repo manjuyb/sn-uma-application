@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_ui_macro">
+    <sys_ui_macro action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <category>general</category>
+        <description>Supplies help text for the Response Mapping form.</description>
+        <media_type/>
+        <name>pcmrest_response_helper</name>
+        <scoped_name>x_10227_pcm_rest_i_pcmrest_response_helper</scoped_name>
+        <sys_class_name>sys_ui_macro</sys_class_name>
+        <sys_created_by>nicholas.yancer</sys_created_by>
+        <sys_created_on>2016-05-27 18:00:28</sys_created_on>
+        <sys_customer_update>true</sys_customer_update>
+        <sys_id>0d5f14932befd640ddeec8b219da156a</sys_id>
+        <sys_mod_count>26</sys_mod_count>
+        <sys_name>pcmrest_response_helper</sys_name>
+        <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
+        <sys_update_name>sys_ui_macro_0d5f14932befd640ddeec8b219da156a</sys_update_name>
+        <sys_updated_by>nicholas.yancer</sys_updated_by>
+        <sys_updated_on>2016-05-27 18:37:56</sys_updated_on>
+        <xml><![CDATA[<?xml version="1.0" encoding="utf-8" ?>
+<j:jelly trim="false" xmlns:j="jelly:core" xmlns:g="glide" xmlns:j2="null" xmlns:g2="null">
+
+	<div style="border-radius:5px; border: 2px solid gray; padding: 5px 15px; margin: 0px auto; max-width:750px; min-width: 300px; text-align: center; background-color:rgb(231, 241, 254);">
+		<p style="vertical-align: middle; display: inline-block; white-space: pre-line;">You can access the following variables within this script block:
+			
+			jsonResponse - An object decoded from the JSON response to the web service call.
+			respHeaders - An object containing the response headers from the web service call.
+			current - The GlideRecord object for the record being sent in the API call.
+	</p>
+	</div>
+</j:jelly>]]></xml>
+    </sys_ui_macro>
+</record_update>

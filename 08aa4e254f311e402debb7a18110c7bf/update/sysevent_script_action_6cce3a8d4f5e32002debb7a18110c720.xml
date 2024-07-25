@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sysevent_script_action">
+    <sysevent_script_action action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <condition_script/>
+        <description/>
+        <event_name>x_10227_pcm_rest_i.pcm.rest_fail</event_name>
+        <name>PCM - Handle REST Failure</name>
+        <order>100</order>
+        <script><![CDATA[processRestError(current,event);
+
+function processRestError(rec,evt){
+	
+	var url = '';
+	var ep = event.parm1;
+	
+	if (!!ep){
+		url = ep.toString().split('/').splice(0,3).join('/');
+	}
+	
+	var resp = event.parm2.toString().split('|');
+	
+	var sDesc = 'Error connecting to REST endpoint at ' + url;
+	var desc = 'Rest Integration: ' + rec.getDisplayValue() + '\n';
+	desc += 'REST Service: ' + rec.rest_service.getDisplayValue() + '\n';
+	desc += 'Table: ' + rec.table + '\n';
+	desc += 'HTTP Status: ' + resp[0] + '\n';
+	desc += 'Response: ' + resp[1];
+	
+	// Check for existing incident
+	var inc = new GlideRecord('incident');
+	inc.addQuery('active','true');
+	inc.addQuery('short_description',sDesc);
+	
+	inc.query();
+	
+	if (inc.next()){
+		// Incident exists, add a comment. Use the description.
+		inc.comments = 'Error reported:' + '\n\n' + desc;
+		inc.update();
+	} else {
+		// No active incident, create a new one
+		inc.initialize();
+		inc.short_description = sDesc;
+		inc.description = desc;
+		inc.caller_id = rec.incoming_user;
+		inc.impact = '2';
+		inc.urgency = '1';
+		inc.company = gs.getProperty('u.helper.default_company'); // default company
+		inc.insert();
+	}
+	
+}]]></script>
+        <synchronous>false</synchronous>
+        <sys_class_name>sysevent_script_action</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2017-04-21 18:54:52</sys_created_on>
+        <sys_customer_update>true</sys_customer_update>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>6cce3a8d4f5e32002debb7a18110c720</sys_id>
+        <sys_mod_count>9</sys_mod_count>
+        <sys_name>PCM - Handle REST Failure</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
+        <sys_update_name>sysevent_script_action_6cce3a8d4f5e32002debb7a18110c720</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2017-04-21 19:22:11</sys_updated_on>
+    </sysevent_script_action>
+</record_update>

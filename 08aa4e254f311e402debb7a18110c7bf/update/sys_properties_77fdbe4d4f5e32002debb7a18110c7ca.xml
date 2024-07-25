@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_properties">
+    <sys_properties action="INSERT_OR_UPDATE">
+        <choices/>
+        <description>If set to true, then an incident will be created when an outbound REST call fails.</description>
+        <ignore_cache>false</ignore_cache>
+        <is_private>false</is_private>
+        <name>x_10227_pcm_rest_i.pcm.rest.log_incident_on_fail</name>
+        <read_roles/>
+        <suffix>pcm.rest.log_incident_on_fail</suffix>
+        <sys_class_name>sys_properties</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2017-04-21 18:49:07</sys_created_on>
+        <sys_customer_update>true</sys_customer_update>
+        <sys_id>77fdbe4d4f5e32002debb7a18110c7ca</sys_id>
+        <sys_mod_count>0</sys_mod_count>
+        <sys_name>x_10227_pcm_rest_i.pcm.rest.log_incident_on_fail</sys_name>
+        <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
+        <sys_update_name>sys_properties_77fdbe4d4f5e32002debb7a18110c7ca</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2017-04-21 18:49:07</sys_updated_on>
+        <type>boolean</type>
+        <value>true</value>
+        <write_roles>admin</write_roles>
+    </sys_properties>
+    <sys_translated_text action="delete_multiple" query="documentkey=77fdbe4d4f5e32002debb7a18110c7ca"/>
+</record_update>

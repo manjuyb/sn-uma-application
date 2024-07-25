@@ -1,0 +1,1013 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update table="sys_script_include">
+    <sys_script_include action="INSERT_OR_UPDATE">
+        <access>public</access>
+        <active>true</active>
+        <api_name>x_10227_pcm_rest_i.PCMRESTController</api_name>
+        <client_callable>false</client_callable>
+        <description>Contains all the functionality for using the PCM REST integration configuration in a business rule. Encapsulates all methods for:&#13;
+1. Checking for existing REST service configurations for a specified company and table&#13;
+2. Checking "Stop Rules" to control when to send a REST message&#13;
+3. Building message content by mapping table fields to parameters speficied in the web service&#13;
+4. Carrying out any value mapping required between the source and target systems for a specified field&#13;
+5. Checking for existing correlations to the target record and sending a message for each one found&#13;
+6. Inserting new correlations when matching REST services are found for the target record but no correlation yet exists&#13;
+&#13;
+"Current" is passed to the object during instantiation.&#13;
+&#13;
+V2: Using "GlideFilter" to check the record so that a query is not necessary. This would allow the BR to run "before." Add helper methods for transform map scripts: getCorrelationID and newCorrelation.</description>
+        <name>PCMRESTController</name>
+        <script><![CDATA[var PCMRESTController = Class.create();
+PCMRESTController.prototype = {
+	initialize: function(targetRecord,triggerEvent) {
+		
+		if (!!targetRecord){
+			this.targetRecord = targetRecord;
+			// Need to account for non-task tables where company is a custom field.
+			if (!!this.targetRecord.company){
+				// table has a field called company
+				this.company = this.targetRecord.company.getRefRecord();
+			} else if (!!this.targetRecord.u_company){
+				// table has a field u_company
+				this.company = this.targetRecord.u_company.getRefRecord();
+			} else if (!!gs.getUser().getCompanyID()){
+				// Check the user's company
+				var co = new GlideRecord('core_company');
+				if (co.get(gs.getUser().getCompanyID())){
+					this.company = co;
+				}
+			} else {
+				// If all else fails, use the default company from system properties
+				var compId = gs.getProperty('u.helper.default_company');
+				var co = new GlideRecord('core_company');
+				if (co.get(compId)){
+					this.company = co;
+				}
+			}
+			this.table_name = this.targetRecord.getTableName();
+		}
+		
+		if (typeof triggerEvent != 'undefined'){
+			this._event = triggerEvent;
+		}
+	},
+	
+	targetRecord: '',
+	company: '',
+	table_name: '',
+	restService: '',
+	_restMessage: '',
+	_httpMethod: '',
+	_msgResponse: '',
+	_httpStatus: '',
+	_oResp: '',
+	_event: '',
+	
+	// 27-May-2016, NYancer: Adding response headers
+	
+	_responseHeaders: '',
+	
+	/*
+		New method processCMDBInetgration
+		Input is a table name to process.
+		No return value.
+		Sets the helper table_name property to a specified value, then calls the processIntegration function.
+	*/
+	
+	processCMDBIntegration: function(tbl){
+	
+		this.table_name = tbl;
+		this.processIntegration();
+		
+	},
+	
+	processIntegration: function(){
+		
+		// Check for existing correlations. If found, send a new mesasge for each one.
+		// Keep a list of the integrations found in the correlations table. When looking for new integrations, these should be skipped.
+		var existingIntegrations = [];
+		
+		var corr = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_correlation');
+		corr.addQuery('target_table',this.table_name);
+		corr.addQuery('target',this.targetRecord.sys_id);
+		corr.query();
+		
+		// Send a message for each one found. This is an "update."
+		while (corr.next()){
+			
+			if (corr.pcm_integration != ''){
+				
+				this._setRestService(corr.pcm_integration.sys_id.toString());
+				this._postMessage('update',corr);
+				existingIntegrations.push(corr.pcm_integration.sys_id.toString());
+				
+			}
+			
+		}
+		
+		// Process new integrations by calling this._getRestService and passing the list of current correlated integrations
+		this._getRestService(existingIntegrations.toString());
+		
+	},
+	
+	// Converting to a private function
+	_getRestService: function(currIntegrations){
+		
+		// If company and table name were not found on intialization, return nothing.
+		try {
+			if (this.company == '' || this.table_name == ''){
+				return;
+			}
+			
+			gs.info('In function _getRestService, got table and company');
+			
+			// Build encoded query
+			
+			// First, build an encoded query that will be common to all three subqueries.
+			var constQuery = 'table=' + this.table_name;
+			if (currIntegrations.length > 0){
+				constQuery += '^sys_idNOT IN' + currIntegrations.toString();
+			}
+			
+			// First part, check for integrations with "all companies" and do not filter by company.
+			var restQuery = constQuery.toString();
+			restQuery += '^include_all_companies=true';
+			
+			// Second part, no child companies. Match only the company on the setup record.
+			restQuery += '^NQ' + constQuery.toString();
+			restQuery += '^company=' + this.company.getUniqueValue() + '^include_child_companies=false';
+			
+			// Third part, child companies. Match the task company or the task company parent to the integration setup company.
+			restQuery += '^NQ' + constQuery.toString();
+			restQuery += '^include_child_companies=true^companyIN' + this.company.getUniqueValue();
+			if (!!this.company.parent){
+				restQuery += ',' + this.company.getValue('parent');
+			}
+			
+			var restService = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_integration_setup');
+			/*restService.addQuery('company',this.company.sys_id);
+			restService.addQuery('table',this.table_name);
+			
+			if (currIntegrations != ''){
+				restService.addQuery('sys_id','NOT IN',currIntegrations);
+			}
+			
+			restService.addQuery('active','true');
+			
+ 			*/
+			
+			restService.addEncodedQuery(restQuery);
+			
+			restService.orderBy('order');
+			
+			restService.query();
+			
+			gs.info('In function _getRestService: looking for rest services and got ' + restService.getRowCount());
+			
+			// Check start and stop conditions for each integration found
+			
+			while(restService.next()){
+				
+				//gs.info('Got Rest Service ' + restService.getDisplayValue());
+				
+				/* Convert this to a GlideFilter call */
+				
+				/*
+				var checkStart = new GlideRecord(this.table_name);
+				checkStart.addQuery('sys_id',this.targetRecord.sys_id);
+				checkStart.addEncodedQuery(restService.start_conditions);
+				
+				checkStart.query();
+ 				*/
+				
+				var gf = GlideFilter;
+				
+				// GlideFilter arguments: GlideRecord to check, condition string to match, T/F whether to check all conditions or any conditions.
+				
+				var checkStart = gf.checkRecord(this.targetRecord,restService.start_conditions.toString(),true);
+				
+				gs.info('In getRestService for ' + restService.rest_service.getDisplayValue() + '. checkStart query is ' + checkStart);
+				
+				if (checkStart == true){
+					
+					gs.info('In getRestService for ' + restService.rest_service.getDisplayValue() + '. checkStart IF returned true.');
+					
+					// Check stop rules
+					var hasStops = this._checkStopRules(restService);
+					
+					gs.info('Does ' + restService.getDisplayValue() + ' one have stops? ' + hasStops);
+					
+					// If no stop rules found, create a correlation record and send the message
+					if (!hasStops){
+						
+						var corr = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_correlation');
+						corr.initialize();
+						corr.target_table = this.table_name || this.targetRecord.getTableName();
+						corr.target = this.targetRecord.sys_id.toString();
+						corr.pcm_integration = restService.sys_id.toString();
+						
+						this._setRestService(restService.sys_id.toString());
+						
+						gs.info('About to send REST message using ' + restService.getDisplayValue());
+						
+						this._postMessage('insert',corr);
+						
+					}
+					
+				}
+				
+			}
+			
+		} catch(err){
+			this._webServiceLog(' Error in getRestService: ' + err.message);
+		}
+		
+	},
+	
+	// Convert to private function
+	_setRestService: function(serviceID){
+		
+		var oRestService = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_integration_setup');
+		oRestService.get(serviceID);
+		
+		this.restService = oRestService;
+		
+	},
+	
+	//convert to private function
+	
+	_checkStopRules: function(restService){
+		
+		gs.info('starting _checkStopRules.');
+		
+		// Check for rest service config. If a config has not been passed, return true to stop processing.
+		var hasConfig = restService != '';
+		
+		gs.info('Checking stop rules. Has service? ' + hasConfig);
+		
+		if (!hasConfig){
+			return !hasConfig;
+		}
+		
+		// Check the current rest integration setup for stop rules.
+		var stopRules = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_stop_rules');
+		stopRules.addQuery('active','true');
+		stopRules.addQuery('pcm_integration',restService.sys_id);
+		
+		stopRules.query();
+		
+		gs.info('Found ' + stopRules.getRowCount() + ' stop rules.');
+		
+		// For each rule, evaluate against the target record. If any rules returns a result, return "true" to prevent rest message.
+		while(stopRules.next()){
+			
+			/* Convert this query to a GlideFilter call.
+			
+			var recCheck = new GlideRecord(this.table_name);
+			recCheck.addQuery('sys_id',this.targetRecord.sys_id);
+			recCheck.addEncodedQuery(stopRules.condition);
+			recCheck.query();
+			
+			if (recCheck.getRowCount() > 0){
+				return true;
+			}
+ 			*/
+			
+			var gf = GlideFilter;
+			var recCheck = gf.checkRecord(this.targetRecord,stopRules.condition.toString(),true);
+			
+			if (recCheck == true){
+				return true;
+			}
+			
+		}
+		
+		return false;
+		
+	},
+	
+	// Convert to private function
+	_postMessage: function(mode,corr){
+		
+		// mode represents "insert" or "update;" if a message has already been sent, then this is an update.
+		// corr is the current correlation record. If isNewRecord() is true, then it is being inserted.
+		
+		var restSvc = this.restService.rest_service.getDisplayValue();
+		
+		// 01-Apr-2016, NYancer: If the current user making the update is the same as the Incoming User for the rest service, do not send
+		
+		var currUser = '';
+		
+		if (this._event != ''){
+			currUser = this._event.user_id;
+		} else {
+			currUser = gs.getUserID();
+		}
+		
+		var restrictedUser = this.restService.incoming_user.sys_id.toString();
+		
+		if (currUser == restrictedUser){
+			return;
+		}
+		
+		var httpMethod = '';
+		
+		if (mode == 'update'){
+			httpMethod = this.restService.rest_update_method.getDisplayValue();
+		} else {
+			httpMethod = this.restService.rest_method.getDisplayValue();
+		}
+		
+		this._httpMethod = httpMethod;
+		
+		try {
+			this._restMessage = new sn_ws.RESTMessageV2(restSvc,httpMethod);
+			
+			// Set params. Pass the correlation record in case you need it in the eval.
+			this._setMessageParams(corr);
+			
+			var response = this._restMessage.execute();
+			this._webServiceLog('SENT|' + this._restMessage.getEndpoint() + '|Response: ' + response.toString());
+			var responseBody = response.getBody();
+			var httpStatus = response.getStatusCode();
+			
+			this._webServiceLog('Rest request: ' + this._restMessage.getRequestBody());
+			
+			this._msgResponse = responseBody;
+			this._httpStatus = httpStatus;
+			
+			this._responseHeaders = response.getHeaders();
+			
+			var msg = '';
+			
+			//gs.addInfoMessage(msg);
+			
+			if ((httpStatus.toString()).indexOf('2') != '0'){
+				this._webServiceLog(httpStatus + '|' + responseBody,'error');
+				// Log an error event if the property is set
+				if (gs.getProperty('x_10227_pcm_rest_i.pcm.rest.log_incident_on_fail','true') == 'true'){
+					gs.eventQueue('x_10227_pcm_rest_i.pcm.rest_fail',this.restService,this._restMessage.getEndpoint(),httpStatus + '|' + responseBody);
+				}
+			}
+			
+			this._processResponse(mode,corr);
+			
+			// Clear variables
+			this._restMessage = null;
+			this._msgResponse = null;
+			this._httpStatus = null;
+		}
+		catch(ex) {
+			var message = ex.message;
+			this._webServiceLog('Error in PostMessage: ' + message,'error');
+		}
+		
+	},
+	
+	_setMessageParams: function(corr){
+		
+		try {
+			// Get field mappings from the restService
+			var maps = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_field_mapping');
+			maps.addQuery('active','true');
+			maps.addQuery('pcm_integration',this.restService.sys_id);
+			maps.query();
+			
+			/*
+			var msgHeaders = this._restMessage.getRequestHeaders();
+			
+			var headersLog = '';
+			
+			for (var key in msgHeaders){
+				headersLog += key + ' is ' + msgHeaders[key] + '\n';
+			}
+			
+			this._webServiceLog('Headers are: ' + headersLog);*/
+			
+			// Check the header to see if the content is JSON
+			
+			var cType = this._restMessage.getRequestHeader('Content-Type');
+			
+			// Default to JSON if not in the message headers
+			if (!(!!cType)){
+				cType = 'application/json';
+			}
+			
+			cType = cType.toLowerCase();
+			
+			var isJSON = true;
+			
+			if (cType.indexOf('xml')> -1){
+				isJSON = false;
+			}
+			
+			//this._webServiceLog('Got the Content-Type header: ' + cType + '|isJSON is ' + isJSON);
+			
+			// Process each field map. Can either be a scripted value or a table column. If not scripted, can also have value mappings.
+			// Pass the correlation object in case you need any values.
+			while (maps.next()){
+				
+				// Add try/catch within the loop to handle failure of individual params.
+				// Otherwise, on error no other params will be processed.
+				
+				try{
+					
+					var parmName = maps.param_name;
+					var parmVal = this._getParamValue(maps,corr);
+					
+					//gs.addInfoMessage('About to set parameter ' + parmName + ' to ' + parmVal);
+					
+					// If the content type is JSON, then do not escape for XML.
+					
+					if (isJSON){
+						parmVal = journal2JSON(parmVal);
+						this._restMessage.setStringParameterNoEscape(parmName,parmVal);
+					} else {
+						
+						this._restMessage.setStringParameter(parmName,parmVal);
+					}
+					
+				} catch(e){
+					this._webServiceLog('Error in setMessageParams while processing parameter "' + maps.param_name + '": ' + e.message,'warning');
+				}
+				
+			}
+			
+		} catch(em){
+			//gs.addInfoMessage('Error in setMessageParams function: ' + em.message);
+			this._webServiceLog('Error in setMessageParams: ' + em.message);
+		}
+		
+	},
+	
+	_getParamValue: function(maps,corr){
+		
+		// Check if the current field mapping uses a script
+		if (maps.use_script){
+			
+			// Get a scoped evaluator object
+			var evalObj = new GlideScopedEvaluator();
+			
+			// Make the correlation object available to the evaluator
+			evalObj.putVariable('corr',corr);
+			
+			// Make the event object available to the evaluator
+			var evt = this._event;
+			evalObj.putVariable('event',evt);
+			
+			var retVal = evalObj.evaluateScript(maps,'script');
+			
+			this._webServiceLog(retVal);
+			
+			// Return the result of the script.
+			return retVal;
+			
+		} else {
+			
+			var sourceVal = this.targetRecord.getElement(maps.column_name).toString();
+			
+			if (maps.value_mapping){
+				
+				// Get the mapped value for the source value
+				return this._getMappedValue(sourceVal,maps);
+				
+			}
+			
+			return sourceVal;
+			
+		}
+		
+	},
+	
+	_getMappedValue: function(srcVal,maps){
+		
+		//gs.addInfoMessage('starting "get mapped value" with source value ' + srcVal);
+		
+		// Look up value mappings for this field map
+		var valMaps = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_value_mapping');
+		valMaps.addActiveQuery();
+		valMaps.addQuery('field_map',maps.sys_id);
+		valMaps.addQuery('source_value',srcVal);
+		valMaps.query();
+		
+		//gs.addInfoMessage('Got ' + valMaps.getRowCount() + ' mappings for ' + maps.getDisplayValue());
+		
+		if (valMaps.next()){
+			return valMaps.target_value;
+		} else {
+			return srcVal;
+		}
+		
+	},
+	
+	getResponse: function(){
+		return this._msgResponse;
+	},
+	
+	getHTTPStatus: function() {
+		
+		return this._httpStatus;
+		
+	},
+	
+	getResponseHeaders: function(){
+		
+		return this._responseHeaders;
+		
+	},
+	
+	_processResponse: function(mode,corr){
+		
+		var response = this.getResponse();
+		var status_code = this.getHTTPStatus();
+		
+		var restSvc = this.restService.rest_service.getDisplayValue();
+		var httpMethod = this._httpMethod;
+		var msgSource = this.targetRecord.sys_id + '[' + this.targetRecord.getTableName() + ']';
+		
+		var json = new global.JSON();
+		
+		var oResp = json.decode(response);
+		
+		this._oResp = json.decode(response);
+		
+		//this._webServiceLog('Checking status code: ' + status_code + '|' +status_code.toString().indexOf('2'));
+		
+		if(status_code.toString().indexOf('2') != 0){
+			
+			var err = response;
+			
+			this._webServiceLog(status_code + ' - An error has occurred, web service response is: ' + err,'error');
+			corr.last_update = new GlideDateTime();
+			
+			corr.last_http_status = status_code.toString();
+			corr.last_response = response.toString();
+			
+			if (corr.isNewRecord()){
+				corr.insert();
+			} else {
+				corr.update();
+			}
+			
+		} else {
+			
+			this._webServiceLog(status_code + '|Response: ' + response);
+			
+			this._parseResponse(mode,corr);
+			
+		}
+		
+	},
+	
+	_parseResponse: function(mode,corr){
+		
+		//gs.addInfoMessage('Starting parseResponse function with mode = ' + mode + ' and corr is ' + corr);
+		
+		// Get an eval object.
+		var evalObj = new GlideScopedEvaluator();
+		
+		// Pass the json-decoded response to the evaluator.
+		evalObj.putVariable('jsonResponse',this._oResp);
+		
+		// Pass the response headers object to the evaluator.
+		// Use when the API does not return a response body or when correlation info is needed in the header.
+		evalObj.putVariable('respHeaders',this._responseHeaders);
+		
+		//this._webServiceLog('Getting oResp back from evaluator: ' + evalObj.getVariable('jsonResponse'));
+		
+		// Query the response mapping table for this message.
+		
+		var maps = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_response_mapping');
+		maps.addActiveQuery();
+		maps.addQuery('pcm_integration',this.restService.sys_id);
+		maps.query();
+		
+		//this._webServiceLog('In function parseResponse, got ' + maps.getRowCount() + ' response mappings.');
+		
+		// For each response mapping, get the value from the response and update the correlation record.
+		
+		try {
+			
+			while (maps.next()){
+				
+				var tVal = evalObj.evaluateScript(maps,'json_path',null);
+				
+				//this._webServiceLog('tVal is ' + tVal);
+				
+				if (tVal != ''){
+					// Update the correlation record with the response values
+					corr.setValue(maps.column_name,tVal);
+					
+				}
+				
+			}
+			
+			// Update the correlation with the current date/time and the response.
+			
+			corr.last_update = new GlideDateTime();
+			corr.last_response = this.getResponse();
+			corr.last_http_status = this.getHTTPStatus();
+			
+			//gs.addInfoMessage('Info about corr: id = ' + corr.sys_id.toString() + '; new record = ' + corr.isNewRecord());
+			
+			if (corr.isNewRecord()){
+				corr.insert();
+			} else {
+				corr.update();
+			}
+			
+		} catch(err) {
+			this._webServiceLog('Error setting correlation record: ' + err.message);
+			//gs.addInfoMessage('Error setting correlation record: ' + err.message);
+		}
+		
+	},
+	
+	_webServiceLog: function(msg,log_level){
+		
+		var logger = '$$$REST_Logger';
+		
+		var restSvc = this.restService.rest_service.getDisplayValue();
+		var httpMethod = this._httpMethod;
+		var msgSource = this.targetRecord.sys_id + '[' + this.targetRecord.getTableName() + ']';
+		
+		var logMsg = 'Service: ' + restSvc + '|Method: ' + httpMethod + '|Sent from: ' + msgSource + '|Message: ' + msg;
+		
+		if (log_level == 'error'){
+			
+			gs.error(logMsg,logger);
+			
+		} else if (log_level == 'warning') {
+			
+			gs.warn(logMsg,logger);
+			
+		} else {
+			
+			gs.info(logMsg,logger);
+			
+		}
+	},
+	
+	getCorrelationID: function(tableName,correlationID,incomingUser,integrationID){
+		
+		// Look up existing internal Sys ID in a correlation record using a correlation (external) ID
+		
+		/* Return values:
+		
+		-1 = error, not all mandatory values passed
+		0 = no matching record found
+		otherwise, returns the sys_id of the target record from the correlation table.
+		
+ 		*/
+		
+		// tableName and correlationID are mandatory
+		
+		if (tableName == '' || correlationID == ''){
+			return -1;
+		}
+		
+		var corr = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_correlation');
+		corr.addQuery('target_table',tableName);
+		corr.addQuery('correlation_id',correlationID);
+		
+		// If incomingUser is populated and integratoin ID is not, get the rest integration setup record by incoming user
+		if (incomingUser != '' && (typeof integrationID == 'undefined' || integrationID == '')){
+			var restInt = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_integration_setup');
+			restInt.addQuery('table',tableName);
+			restInt.addQuery('incoming_user',incomingUser);
+			
+			restInt.query();
+			
+			if (restInt.next()){
+				corr.addQuery('pcm_integration',restInt.sys_id.toString());
+			}
+		} else if (typeof integrationID != 'undefined'){
+			// if integationID is not empty, add the ID to the correlation query
+			corr.addQuery('pcm_integration',integrationID);
+		}
+		
+		// Execute the query and return the internal ID
+		
+		//gs.info('In function getCorrelationID. Query on correlation table is ' + corr.getEncodedQuery());
+		
+		corr.query();
+		
+		if (corr.next()){
+			return corr.target.toString();
+		} else {
+			return 0;
+		}
+		
+	},
+	
+	newCorrelation: function(targetRecord,corrID,corrDisplay,importUser,integrationID){
+		
+		// Inserts a correlation record for the target record of an import.
+		
+		// targetRecord and corrID mandatory. targetRecord should be a GlideRecord.
+		if (targetRecord == '' || corrID == ''){
+			return;
+		}
+		
+		var tbl = targetRecord.getTableName();
+		
+		// Get the REST integration record by incoming user or by ID
+		var pcmRest = (function(){
+			var restInt = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_integration_setup');
+			restInt.addQuery('table',tbl);
+			
+			//restInt.addQuery('incoming_user',importUser);
+			if ((typeof importUser != 'undefined' && importUser != '') && (typeof integrationID == 'undefined' || integrationID == '')){
+				restInt.addQuery('incoming_user',importUser);
+			} else {
+				restInt.addQuery('sys_id',integrationID);
+			}
+			
+			restInt.query();
+			
+			if (restInt.next()){
+				return restInt.sys_id.toString();
+			}
+			
+			return '';
+		})();
+		
+		// Check for existing correlation record
+		var corr = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_correlation');
+		
+		corr.addQuery('target_table',tbl);
+		corr.addQuery('target',targetRecord.sys_id.toString());
+		corr.addQuery('correlation_id',corrID);
+		corr.addQuery('pcm_integration',pcmRest);
+		
+		corr.query();
+		
+		// If no record exists, create a new one.
+		
+		if (corr.getRowCount() == 0){
+			
+			corr.initialize();
+			
+			corr.target_table = tbl;
+			corr.target = targetRecord.sys_id.toString();
+			corr.correlation_id = corrID;
+			corr.correlation_display = corrDisplay;
+			
+			
+			if (pcmRest != ''){
+				corr.pcm_integration = pcmRest;
+				corr.insert();
+			} else {
+				// No integration, cannot insert correlation
+				return;
+			}
+		}
+		
+		
+	},
+	
+	/*
+		Method newCMDBCorrelation - creates a correlation record for a record in the CMDB table
+		Uses the TableUtils include to find correlation records using the CMDB table hierarchy.
+		Because the CMDB uses inheritance, the Task-based methods for finding integration records by direct table lookup will not work here.
+		Inputs: GlideRecord of the target record in this instance; target table name for the integration (may be different from the CI table); correlation ID and correlation display values for the correlation record
+			API user to lookup the integration record OR the sys_id of the integration record to be used
+		Return: void. This method creates a new correlation record and does not have a return value.
+	*/
+	
+	newCMDBCorrelation: function(targetRecord,tbl,corrID,corrDisplay,importUser,integrationID){
+		
+		// If there is no record and no correlation ID, exit
+		if (!(!!targetRecord) || !(!!corrID) || !(!!tbl)){
+			return;
+		}
+		
+		// Make sure you have either an API user or an integration ID
+		if (!(!!importUser) && !(!!integrationID)){
+			return;
+		}
+		
+		// Get the REST integration record by incoming user or by ID
+		var pcmRest = (function(){
+			var restInt = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_integration_setup');
+			restInt.addQuery('table',tbl);
+			
+			//restInt.addQuery('incoming_user',importUser);
+			if ((!!importUser) && !(!!integrationID)){
+				restInt.addQuery('incoming_user',importUser);
+			} else {
+				restInt.addQuery('sys_id',integrationID);
+			}
+			
+			restInt.query();
+			
+			if (restInt.next()){
+				return restInt.sys_id.toString();
+			}
+			
+			return '';
+		})();
+
+		// Check for existing correlation record
+		var corr = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_correlation');
+		
+		corr.addQuery('target_table',tbl);
+		corr.addQuery('target',targetRecord.sys_id.toString());
+		corr.addQuery('correlation_id',corrID);
+		corr.addQuery('pcm_integration',pcmRest);
+		
+		corr.query();
+		
+		// If no record exists, create a new one.
+		
+		if (corr.getRowCount() == 0){
+			
+			corr.initialize();
+			
+			corr.target_table = tbl;
+			corr.target = targetRecord.sys_id.toString();
+			corr.correlation_id = corrID;
+			corr.correlation_display = corrDisplay;
+			
+			
+			if (pcmRest != ''){
+				corr.pcm_integration = pcmRest;
+				corr.insert();
+			} else {
+				// No integration, cannot insert correlation
+				return;
+			}
+		}
+		
+	},
+	
+	getIntegrationRec: function(companyParm, tableParm, restMessageParm){
+		
+		// Looks up an integration record by company, table, and rest message.
+		// Returns null if empty parameters or no integration found. Otherwise returns GlideRecord of the integration setup record
+		
+		// companyParm = sys_id of core_company to use in lookup
+		// tableParm = name of table use in lookup, string
+		// restMessageParm = sys_id of sys_rest_message to use in lookup
+		
+		// Check for empty parameters
+		if (companyParm == '' || tableParm == '' || restMessageParm == '' || companyParm == null || tableParm == null || restMessageParm == null){
+			return null;
+		}
+		
+		var retVal = null;
+		
+		// Set up a constant query to use in the encoded query to handle differences in company setting.
+		
+		var constQuery = 'table=' + tableParm;
+		constQuery += '^rest_service=' + restMessageParm;
+		
+		// Build encoded query
+		// First part, check for setups that are for all companies.
+		var encQry = constQuery.toString() + '^include_all_companies=true';
+		
+		// Second part, no child companies included.
+		encQry += '^NQ' + constQuery.toString() + '^company=' + companyParm + '^include_child_companies=false';
+		
+		// Third part, check for Child companies. Need to get a GlideRecord for the company in order to get the parent.
+		var cGr = new GlideRecord('core_company');
+		cGr.get(companyParm);
+		
+		encQry += '^NQ' + constQuery.toString() + '^include_child_companies=true^companyIN' + companyParm;
+		if (!!cGr && !!cGr.parent){
+			encQry += ',' + cGr.getValue('parent');
+		}
+		
+		var intRec = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_integration_setup');
+		//intRec.addQuery('company',companyParm);
+		//intRec.addQuery('table',tableParm);
+		//intRec.addQuery('rest_service',restMessageParm);
+		
+		// Apply the query we built
+		intRec.addEncodedQuery(encQry);
+		
+		intRec.query();
+		
+		if (intRec.next()){
+			retVal = intRec;
+		}
+		
+		return retVal;
+		
+	},
+	
+	// function getCorrelationByRestService
+	// Takes the correlation ID (foreign key from the external system), table name, incoming APi user, and/or REST Message sys_id as inputs
+	// Returns the internal sys_id correponding to the foreign key, if found.
+	// Returns -1 if missing input parameters; returns 0 if no record found.
+	
+	getCorrelationByRestService: function(corrID,tableName,inUser,restService){
+		
+		//gs.info('Starting helper function getCorrelationByRestService; params: ' + corrID + '|' + tableName + '|' + inUser + '|' + restService);
+		
+		if (corrID == null || corrID == '' || tableName == null || tableName == '' || inUser == null || inUser == '' || restService == null || restService == ''){
+			return -1;
+		}
+		
+		var corrRec = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_correlation');
+		corrRec.addQuery('correlation_id',corrID);
+		corrRec.addQuery('target_table',tableName);
+		corrRec.addQuery('pcm_integration.incoming_user',inUser);
+		corrRec.addQuery('pcm_integration.rest_service',restService);
+		corrRec.query();
+		
+		if (corrRec.next()){
+			return corrRec.target.sys_id.toString();
+		} else {
+			return 0;
+		}
+		
+	},
+	
+	// function getForeignKeyByRestService
+	// Takes an internal sys_id, table name, and either a PCM REST Integration Setup sys_id or the incoming user sys_id
+	// Returns the correlation_id if found, which is the unique ID in the external system.
+	// Returns -1 if the incorrect parameters are not present and returns 0 if no record is found.
+	
+	getForeignKeyByRestService: function(recID,tableName,restSetup,restUser,companyParm){
+		
+		// Make sure that there is a recID, tableName and EITHER restService or restUser AND company
+		if (!!recID && !!tableName && (!!restSetup || (!!restUser && !!companyParm))){
+			
+			// Look up a correlation record.
+			// If there is no restService, use restUser to look it up
+			var svc = restSetup;
+			
+			if (!(!!restSetup)){
+				
+				// Query by company.
+				
+				var baseQry = 'table=' + tableName + '^incoming_user=' + restUser;
+				
+				// Build encoded query
+				// First part, check for setups that are for all companies.
+				var encQry = baseQry.toString() + '^include_all_companies=true';
+				
+				// Second part, no child companies included.
+				encQry += '^NQ' + baseQry.toString() + '^company=' + companyParm + '^include_child_companies=false';
+				
+				// Third part, check for Child companies. Need to get a GlideRecord for the company in order to get the parent.
+				var cGr = new GlideRecord('core_company');
+				cGr.get(companyParm);
+				
+				encQry += '^NQ' + baseQry.toString() + '^include_child_companies=true^companyIN' + companyParm;
+				if (!!cGr && !!cGr.parent){
+					encQry += ',' + cGr.getValue('parent');
+				}
+				
+				svc = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_integration_setup');
+				svc.addEncodedQuery(encQry);
+				svc.query();
+				
+				var svcArr = [];
+				
+				while (svc.next()){
+					svcArr.push(svc.getUniqueValue());
+				}
+				
+				svc = svcArr.join(',');
+			}
+			
+			// Get the correlation record
+			var forKey = new GlideRecord('x_10227_pcm_rest_i_pcm_rest_correlation');
+			forKey.addQuery('target_table',tableName);
+				forKey.addQuery('target',recID);
+				forKey.addQuery('pcm_integration','IN',svc);
+				
+			forKey.query();
+				
+			if (forKey.next()){
+				return forKey.correlation_id;
+			} else {
+				return 0;
+			}
+			
+			
+		} else {
+			return -1;
+		}
+		
+	},
+	
+	type: 'PCMRESTController'
+};]]></script>
+        <sys_class_name>sys_script_include</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2016-02-25 20:23:07</sys_created_on>
+        <sys_customer_update>true</sys_customer_update>
+        <sys_id>cd078be14fb11e402debb7a18110c7c1</sys_id>
+        <sys_mod_count>215</sys_mod_count>
+        <sys_name>PCMRESTController</sys_name>
+        <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
+        <sys_policy>read</sys_policy>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
+        <sys_update_name>sys_script_include_cd078be14fb11e402debb7a18110c7c1</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2017-04-27 14:51:03</sys_updated_on>
+    </sys_script_include>
+</record_update>

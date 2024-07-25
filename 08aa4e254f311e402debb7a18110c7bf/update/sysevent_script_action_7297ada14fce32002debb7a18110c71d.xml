@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?><record_update sys_domain="global" table="sysevent_script_action">
+    <sysevent_script_action action="INSERT_OR_UPDATE">
+        <active>true</active>
+        <condition_script/>
+        <description/>
+        <event_name>x_10227_pcm_rest_i.pcm.cmdb.send_rest</event_name>
+        <name>PCM Send REST Message</name>
+        <order>100</order>
+        <script><![CDATA[sendRest(current,event);
+
+function sendRest(current,event){
+
+	// Instantiate PCMRESTController object
+
+	try{
+
+		var controller = new x_10227_pcm_rest_i.PCMRESTController(current,event);
+
+		// Need to call the CMDB method in the controller and pass the target table name.
+		// Table name needs to be logged to the event as the first event parameter. This is the base CMDB table defined for the REST integration setup.
+		controller.processCMDBIntegration(event.getValue('parm1'));
+
+	} catch(err){
+		gs.info('Error in REST CMDB script action: ' + err.message);
+	}
+
+}]]></script>
+        <synchronous>false</synchronous>
+        <sys_class_name>sysevent_script_action</sys_class_name>
+        <sys_created_by>admin</sys_created_by>
+        <sys_created_on>2017-04-10 15:31:49</sys_created_on>
+        <sys_customer_update>true</sys_customer_update>
+        <sys_domain>global</sys_domain>
+        <sys_domain_path>/</sys_domain_path>
+        <sys_id>7297ada14fce32002debb7a18110c71d</sys_id>
+        <sys_mod_count>1</sys_mod_count>
+        <sys_name>PCM Send REST Message</sys_name>
+        <sys_overrides/>
+        <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
+        <sys_policy/>
+        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
+        <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
+        <sys_update_name>sysevent_script_action_7297ada14fce32002debb7a18110c71d</sys_update_name>
+        <sys_updated_by>admin</sys_updated_by>
+        <sys_updated_on>2017-04-12 19:57:17</sys_updated_on>
+    </sysevent_script_action>
+</record_update>
