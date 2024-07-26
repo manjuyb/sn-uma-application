@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="94c885fd2b4292009dfcdb9ee8da15a3" label="PCM REST Correlation" max_length="40" name="x_10227_pcm_rest_i_pcm_rest_correlation" type="collection">
+        <element attributes="edge_encryption_enabled=true" dependent="target_table" dependent_on_field="target_table" display="true" label="Target" max_length="32" name="target" type="document_id" use_dependent_field="true"/>
+        <element label="Last Response" max_length="4000" name="last_response" type="string"/>
+        <element label="Correlation Display" max_length="255" name="correlation_display" type="string"/>
+        <element label="Last Update" max_length="40" name="last_update" type="glide_date_time"/>
+        <element attributes="edge_encryption_enabled=true,encode_utf8=false" label="Pcm Integration" max_length="32" name="pcm_integration" reference="x_10227_pcm_rest_i_pcm_rest_integration_setup" type="reference"/>
+        <element label="Last HTTP Status" max_length="40" name="last_http_status" type="string"/>
+        <element hint="Used to coalesce on import in the absence of PCM REST Service for incoming data. Used for one-way integrations INTO the system." label="External Source" max_length="100" name="external_source" read_only="true" type="string"/>
+        <element attributes="base_start=true,edge_encryption_enabled=true" label="Target Table" max_length="80" name="target_table" type="table_name"/>
+        <element label="Correlation ID" max_length="255" name="correlation_id" type="string"/>
+        <index name="index">
+            <element name="pcm_integration"/>
+        </index>
+        <index name="index2">
+            <element name="target"/>
+        </index>
+    </element>
+</database>

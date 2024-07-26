@@ -11,13 +11,10 @@
             <sys_class_name>sys_documentation</sys_class_name>
             <sys_created_by>admin</sys_created_by>
             <sys_created_on>2016-02-29 18:46:51</sys_created_on>
-            <sys_customer_update>false</sys_customer_update>
-            <sys_id>5dce57fa4f7512002debb7a18110c7a6</sys_id>
             <sys_mod_count>0</sys_mod_count>
             <sys_name>PCM Integration</sys_name>
             <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
             <sys_policy/>
-            <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
             <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
             <sys_update_name>sys_documentation_x_10227_pcm_rest_i_pcm_rest_response_mapping_pcm_integration_en</sys_update_name>
             <sys_updated_by>admin</sys_updated_by>

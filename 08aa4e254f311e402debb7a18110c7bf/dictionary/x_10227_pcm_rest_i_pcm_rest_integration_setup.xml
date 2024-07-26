@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="48aa4e254f311e402debb7a18110c7bf" label="PCM REST Integration Setup" max_length="40" name="x_10227_pcm_rest_i_pcm_rest_integration_setup" type="collection">
+        <element attributes="edge_encryption_enabled=true,encode_utf8=false" label="REST Service" max_length="32" name="rest_service" reference="sys_rest_message" reference_qual="sys_scope=08aa4e254f311e402debb7a18110c7bf^EQ" reference_qual_condition="sys_scope=08aa4e254f311e402debb7a18110c7bf^EQ" type="reference"/>
+        <element attributes="edge_encryption_enabled=true" label="Include All Companies" max_length="40" name="include_all_companies" type="boolean"/>
+        <element attributes="edge_encryption_enabled=true,encode_utf8=false" hint="User for incoming web service updates from this endpoint. Updates made by this user will NOT result in messages being sent by this REST Service integration." label="Incoming User" max_length="32" name="incoming_user" reference="sys_user" type="reference"/>
+        <element attributes="edge_encryption_enabled=true" hint="If true, attachments will not sync on import for this integration." label="No Attachment Sync" max_length="40" name="no_attachment_sync" type="boolean"/>
+        <element attributes="edge_encryption_enabled=true,encode_utf8=false" dependent="rest_service" dependent_on_field="rest_service" label="REST Update Method" max_length="32" name="rest_update_method" reference="sys_rest_message_fn" type="reference" use_dependent_field="true"/>
+        <element attributes="edge_encryption_enabled=true,encode_utf8=false" dependent="rest_service" dependent_on_field="rest_service" label="REST Insert Method" max_length="32" name="rest_method" reference="sys_rest_message_fn" type="reference" use_dependent_field="true"/>
+        <element attributes="edge_encryption_enabled=true" label="Include Child Companies" max_length="40" name="include_child_companies" type="boolean"/>
+        <element attributes="edge_encryption_enabled=true,encode_utf8=false" label="Company" max_length="32" name="company" reference="core_company" type="reference"/>
+        <element attributes="base_start=true,edge_encryption_enabled=true" label="Table" max_length="80" name="table" type="table_name"/>
+        <element attributes="edge_encryption_enabled=true" default="10" label="Order" mandatory="true" max_length="40" name="order" type="integer"/>
+        <element default="javascript:global.getNextObjNumberPadded();" label="Number" max_length="40" name="number" type="string"/>
+        <element attributes="edge_encryption_enabled=true,extended_operators=VALCHANGES;CHANGESFROM;CHANGESTO" dependent="table" dependent_on_field="table" label="Start Conditions" max_length="4000" name="start_conditions" type="conditions" use_dependent_field="true"/>
+        <index name="index">
+            <element name="company"/>
+        </index>
+        <index name="index2">
+            <element name="incoming_user"/>
+        </index>
+        <index name="index3">
+            <element name="rest_method"/>
+        </index>
+        <index name="index4">
+            <element name="rest_service"/>
+        </index>
+        <index name="index5">
+            <element name="rest_update_method"/>
+        </index>
+    </element>
+</database>

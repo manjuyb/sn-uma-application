@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="a8be06694f311e402debb7a18110c741" label="PCM REST Stop Rules" max_length="40" name="x_10227_pcm_rest_i_pcm_rest_stop_rules" type="collection">
+        <element attributes="edge_encryption_enabled=true,encode_utf8=false" label="PCM Integration" mandatory="true" max_length="32" name="pcm_integration" reference="x_10227_pcm_rest_i_pcm_rest_integration_setup" type="reference"/>
+        <element attributes="edge_encryption_enabled=true" dependent="pcm_integration.table" dependent_on_field="pcm_integration.table" label="Condition" max_length="4000" name="condition" type="conditions" use_dependent_field="true"/>
+        <element display="true" label="Name" mandatory="true" max_length="40" name="name" type="string"/>
+        <element attributes="edge_encryption_enabled=true" default="true" label="Active" max_length="40" name="active" type="boolean"/>
+        <index name="index">
+            <element name="pcm_integration"/>
+        </index>
+    </element>
+</database>

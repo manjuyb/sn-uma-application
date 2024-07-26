@@ -1,22 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?><record_update table="ua_table_licensing_config">
     <ua_table_licensing_config action="INSERT_OR_UPDATE">
         <is_fulfillment>false</is_fulfillment>
+        <license_condition/>
+        <license_model>none</license_model>
+        <license_roles/>
         <name>x_10227_pcm_rest_i_pcm_rest_correlation</name>
+        <op_delete>true</op_delete>
+        <op_insert>true</op_insert>
+        <op_update>true</op_update>
         <owner_condition table="x_10227_pcm_rest_i_pcm_rest_correlation">sys_created_by=javascript:gs.getUserName()^EQ<item endquery="false" field="sys_created_by" goto="false" newquery="false" operator="=" or="false" value="javascript:gs.getUserName()"/>
             <item endquery="true" field="" goto="false" newquery="false" operator="=" or="false" value=""/>
         </owner_condition>
         <sys_class_name>ua_table_licensing_config</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2016-08-19 13:30:05</sys_created_on>
-        <sys_customer_update>true</sys_customer_update>
-        <sys_id>06b7809e4f5522002debb7a18110c7be</sys_id>
+        <sys_id>3b58feea472b0210fcba50fe316d4303</sys_id>
         <sys_mod_count>0</sys_mod_count>
         <sys_name>x_10227_pcm_rest_i_pcm_rest_correlation</sys_name>
         <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
         <sys_policy/>
-        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
         <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
-        <sys_update_name>ua_table_licensing_config_06b7809e4f5522002debb7a18110c7be</sys_update_name>
+        <sys_update_name>ua_table_licensing_config_3b58feea472b0210fcba50fe316d4303</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>
         <sys_updated_on>2016-08-19 13:30:05</sys_updated_on>
     </ua_table_licensing_config>

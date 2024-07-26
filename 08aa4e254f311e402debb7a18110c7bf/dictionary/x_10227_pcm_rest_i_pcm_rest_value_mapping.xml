@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?><database>
+    <element db_object_id="b1731a2d4f311e402debb7a18110c778" label="PCM REST Value Mapping" max_length="40" name="x_10227_pcm_rest_i_pcm_rest_value_mapping" type="collection">
+        <element attributes="edge_encryption_enabled=true,encode_utf8=false" label="Field Map" max_length="32" name="field_map" reference="x_10227_pcm_rest_i_pcm_rest_field_mapping" type="reference"/>
+        <element label="Target Value" max_length="40" name="target_value" type="string"/>
+        <element label="Source Value" max_length="40" name="source_value" type="string"/>
+        <element attributes="edge_encryption_enabled=true" default="true" label="Active" max_length="40" name="active" type="boolean"/>
+        <index name="index">
+            <element name="field_map"/>
+        </index>
+    </element>
+</database>

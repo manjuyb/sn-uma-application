@@ -3,12 +3,12 @@
         <access>public</access>
         <actions_access>false</actions_access>
         <alter_access>false</alter_access>
+        <caller_access/>
         <client_scripts_access>false</client_scripts_access>
         <configuration_access>false</configuration_access>
         <create_access>false</create_access>
         <create_access_controls>true</create_access_controls>
         <delete_access>false</delete_access>
-        <extension_model/>
         <is_extendable>false</is_extendable>
         <label>PCM REST Correlation</label>
         <live_feed_enabled>false</live_feed_enabled>
@@ -16,17 +16,16 @@
         <number_ref/>
         <provider_class/>
         <read_access>true</read_access>
+        <scriptable_table>false</scriptable_table>
         <super_class/>
         <sys_class_name>sys_db_object</sys_class_name>
         <sys_created_by>nicholas.yancer</sys_created_by>
         <sys_created_on>2016-03-09 15:39:29</sys_created_on>
-        <sys_customer_update>true</sys_customer_update>
         <sys_id>94c885fd2b4292009dfcdb9ee8da15a3</sys_id>
         <sys_mod_count>4</sys_mod_count>
         <sys_name>PCM REST Correlation</sys_name>
         <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
         <sys_policy/>
-        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
         <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
         <sys_update_name>sys_db_object_94c885fd2b4292009dfcdb9ee8da15a3</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>

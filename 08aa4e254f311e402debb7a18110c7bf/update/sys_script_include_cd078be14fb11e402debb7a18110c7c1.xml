@@ -3,6 +3,7 @@
         <access>public</access>
         <active>true</active>
         <api_name>x_10227_pcm_rest_i.PCMRESTController</api_name>
+        <caller_access/>
         <client_callable>false</client_callable>
         <description>Contains all the functionality for using the PCM REST integration configuration in a business rule. Encapsulates all methods for:&#13;
 1. Checking for existing REST service configurations for a specified company and table&#13;
@@ -998,13 +999,11 @@ PCMRESTController.prototype = {
         <sys_class_name>sys_script_include</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2016-02-25 20:23:07</sys_created_on>
-        <sys_customer_update>true</sys_customer_update>
         <sys_id>cd078be14fb11e402debb7a18110c7c1</sys_id>
         <sys_mod_count>215</sys_mod_count>
         <sys_name>PCMRESTController</sys_name>
         <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
         <sys_policy>read</sys_policy>
-        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
         <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
         <sys_update_name>sys_script_include_cd078be14fb11e402debb7a18110c7c1</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>

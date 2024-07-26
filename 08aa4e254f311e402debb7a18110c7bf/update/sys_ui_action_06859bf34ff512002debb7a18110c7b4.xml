@@ -3,13 +3,19 @@
         <action_name>copy_setup</action_name>
         <active>true</active>
         <client>false</client>
+        <client_script_v2/>
         <comments>Copies the current setup. User needs to select a new company, all other fields are copied over. Copies all stop rules,  field mappings (including value mappings), and response mappings.</comments>
         <condition/>
         <form_action>true</form_action>
         <form_button>true</form_button>
+        <form_button_v2>false</form_button_v2>
         <form_context_menu>false</form_context_menu>
         <form_link>false</form_link>
+        <form_menu_button_v2>false</form_menu_button_v2>
+        <form_style/>
+        <format_for_configurable_workspace>false</format_for_configurable_workspace>
         <hint>Copy the current integration setup for a new customer. Fill in a new Customer, then click this button to copy.</hint>
+        <isolate_script>false</isolate_script>
         <list_action>false</list_action>
         <list_banner_button>false</list_banner_button>
         <list_button>false</list_button>
@@ -17,6 +23,8 @@
         <list_context_menu>false</list_context_menu>
         <list_link>false</list_link>
         <list_save_with_form_button>false</list_save_with_form_button>
+        <list_style/>
+        <messages/>
         <name>Copy</name>
         <onclick>setupCopy()</onclick>
         <order>100</order>
@@ -111,7 +119,6 @@ function copyValueMaps(oldMap,newMap){
         <sys_class_name>sys_ui_action</sys_class_name>
         <sys_created_by>admin</sys_created_by>
         <sys_created_on>2016-03-03 20:51:57</sys_created_on>
-        <sys_customer_update>true</sys_customer_update>
         <sys_domain>global</sys_domain>
         <sys_domain_path>/</sys_domain_path>
         <sys_id>06859bf34ff512002debb7a18110c7b4</sys_id>
@@ -120,7 +127,6 @@ function copyValueMaps(oldMap,newMap){
         <sys_overrides/>
         <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
         <sys_policy/>
-        <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
         <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
         <sys_update_name>sys_ui_action_06859bf34ff512002debb7a18110c7b4</sys_update_name>
         <sys_updated_by>admin</sys_updated_by>

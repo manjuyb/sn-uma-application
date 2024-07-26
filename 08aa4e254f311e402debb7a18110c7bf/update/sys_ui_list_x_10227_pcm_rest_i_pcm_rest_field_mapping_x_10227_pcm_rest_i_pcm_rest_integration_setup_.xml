@@ -103,7 +103,6 @@
             <sys_class_name>sys_ui_list</sys_class_name>
             <sys_created_by>admin</sys_created_by>
             <sys_created_on>2016-02-25 16:04:14</sys_created_on>
-            <sys_customer_update>true</sys_customer_update>
             <sys_domain>global</sys_domain>
             <sys_domain_path>/</sys_domain_path>
             <sys_id>d0335ee94f311e402debb7a18110c7ca</sys_id>
@@ -111,7 +110,6 @@
             <sys_name>x_10227_pcm_rest_i_pcm_rest_field_mapping</sys_name>
             <sys_package display_value="PCM REST Integration" source="x_10227_pcm_rest_i">08aa4e254f311e402debb7a18110c7bf</sys_package>
             <sys_policy/>
-            <sys_replace_on_upgrade>false</sys_replace_on_upgrade>
             <sys_scope display_value="PCM REST Integration">08aa4e254f311e402debb7a18110c7bf</sys_scope>
             <sys_update_name>sys_ui_list_x_10227_pcm_rest_i_pcm_rest_field_mapping_x_10227_pcm_rest_i_pcm_rest_integration_setup_</sys_update_name>
             <sys_updated_by>admin</sys_updated_by>
